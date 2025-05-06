@@ -168,7 +168,8 @@ server <- function(input, output, session) {
       ### !!!FILTER 2024 DATA!!! ---------
       filter(
         STARTED >= lubridate::ymd("2025-04-15"),
-        stringr::str_detect(N001_01, "test", negate = TRUE)
+        stringr::str_detect(N001_01, "test", negate = TRUE),
+        !(CASE %in% c(83,85))
       ) %>%
       select(QUESTNNR, starts_with(c("N00", "SD", "OR", "IN", "FA"))) %>%
       # nick name
