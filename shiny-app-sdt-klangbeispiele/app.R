@@ -78,7 +78,10 @@ ui <- fluidPage(
                                         selected = sessions),
                             uiOutput("filter_names")
                ),
-               mainPanel(plotlyOutput("time_series"))
+               mainPanel(
+                 plotlyOutput("time_series"),
+                 tableOutput("freq_classes_sessions_table")
+               )
              )),
     ## UI: per stimulus ----------------
     tabPanel("Korrekte Antworten pro Stimulus",
@@ -238,6 +241,48 @@ server <- function(input, output, session) {
   })
   output$frequency_table_classes <- renderTable({
     freq_classes() %>% rename(Antwortklasse = response_class)
+  })
+  freq_classes_sessions <- reactive({
+    req(data_raw())
+    dat <-
+      data() %>%
+      rename(
+        Antwortklasse = response_class,
+        Sitzung = session
+      ) %>%
+      group_by(Sitzung, Antwortklasse) %>%
+      summarise(
+        n = n()
+      ) %>%
+      ungroup() %>%
+      pivot_wider(
+        names_from = Sitzung,
+        values_from = n
+      )
+    n100 <-
+      dat %>%
+      select(starts_with("sitzung")) %>%
+      colSums()
+    for (session in names(select(dat, starts_with("sitzung")))) {
+      dat[str_c(session, "_perc")] <-
+        dat[session] / n100[session]
+      dat <-
+        dat %>%
+        relocate(
+          !!str_c(session, "_perc"),
+          .after = !!session
+        )
+      # dat[str_c(session, "_n_perc")] <-
+      #   str_c(
+      #     dat[session], " (",
+      #     round(dat[str_c(session, "_perc")], digits = 1),
+      #     "%)"
+      #   )
+    }
+    dat
+  })
+  output$freq_classes_sessions_table <- renderTable({
+    freq_classes_sessions()
   })
 
   output$frequency_plot_classes <- renderPlotly({
